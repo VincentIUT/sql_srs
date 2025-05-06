@@ -1,31 +1,49 @@
 import streamlit as st
 import pandas as pd
 import duckdb as db
+import io
 
 
-st.write('SQL SRS - Spaced Repetition System SQL Practice')
+csv = '''
+beverage,price
+orange juice,2.5
+Expresso,2
+Tea,3
+'''
+beverages = pd.read_csv(io.StringIO(csv))
 
-option = st.selectbox(
-    "What would you like to review ?",
-    ["Joins", "GroupBy", "Window Functions"],
-    index=None,
-    placeholder="Select a theme ...",
-)
+csv2 = '''
+food_item,food_price
+cookie juice,2.5
+chocolatine,2
+muffin,3
+'''
+food_items = pd.read_csv(io.StringIO(csv2))
 
-st.write('You selected', option)
+answer = """
+SELECT * FROM beverages
+CROSS JOIN food_items
+"""
 
-data = {"a": [1, 2, 3], "b": [4, 5, 6]}
-df = pd.DataFrame(data)
+solution = db.sql(answer).df()
 
-tab1, tab2 = st.tabs(["opening", "Dog"])
+st.header('enter your code :')
+query = st.text_area(label="votre code SQL ici", key="user_input")
+if query:
+    result = db.sql(query).df()
+    st.dataframe(result)
 
-with tab1:
-    sql_query = st.text_area(label="entrez votre texte")
-    req = db.query(sql_query).df()
-    st.write(f"Vous avez entré la query suivante : {sql_query}")
-    st.dataframe(req)
+tab2, tab3 = st.tabs(["Tables", "Solution"])
 
 with tab2:
-    st.header("A dog")
-    st.image("https://cdn.futura-sciences.com/cdn-cgi/image/width=1920,quality=50,format=auto/sources/images/actu/esperance-vie-chiens-chiot-golden-retriever.jpg", width=200)
+    st.write('table: beverages')
+    st.dataframe(beverages)
+    st.write("table")
+    st.dataframe(food_items)
+    st.write("expected:")
+    st.dataframe(solution)
+
+with tab3:
+    st.write(answer)
+
 

@@ -1,29 +1,43 @@
 # pylint: disable=missing-module-docstring
+import os
+import logging
 import duckdb
 import streamlit as st
 
+if "data" not in os.listdir(): #si "data" est dans ma liste de répertoires, on le crée
+    logging.debug(os.listdir())
+    logging.debug("creating folder data")
+    os.mkdir("data")
+
+if "exercises_sql_tables.duckdb" not in os.listdir("data"):
+    exec(open("init_db.py").read())
+    #subprocess est a priori mieux que exec
+    #subprocess.run(["python", "init_db.py"])
+
 con = duckdb.connect(database="data/exercises_sql_tables.duckdb", read_only=False)
 
-ANSWER_STR = """
-SELECT * FROM beverages
-CROSS JOIN food_items
-"""
-
 with st.sidebar:
+    available_themes_df = con.execute("SELECT DISTINCT theme FROM memory_state").df()
     theme = st.selectbox(
         "What would you like to review?",
-        ("cross_joins", "GroupBy", "window_functions"),
+        available_themes_df["theme"].unique(),
         index=None,
         placeholder="Select a theme...",
     )
-    st.write("You selected:", theme)
+
+    if theme:
+        st.write(f"You selected {theme}")
+        select_exercise_query = f"SELECT * FROM memory_state WHERE theme = '{theme}'"
+    else:
+        select_exercise_query = f"SELECT * FROM memory_state"
 
     exercise = (
-        con.execute(f"SELECT * FROM memory_state WHERE theme = '{theme}'")
+        con.execute(select_exercise_query)
         .df()
         .sort_values("last_reviewed")
-        .reset_index()
+        .reset_index(drop=True)
     )
+
     st.write(exercise)
 
     exercise_name = exercise.loc[0, "exercise_name"]
